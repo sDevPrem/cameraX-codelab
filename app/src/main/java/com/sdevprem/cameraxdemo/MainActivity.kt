@@ -27,7 +27,9 @@ import androidx.camera.video.VideoCapture
 import androidx.camera.video.VideoRecordEvent
 import androidx.core.content.ContextCompat
 import androidx.core.content.PermissionChecker
+import androidx.lifecycle.lifecycleScope
 import com.sdevprem.cameraxdemo.databinding.ActivityMainBinding
+import kotlinx.coroutines.launch
 import java.nio.ByteBuffer
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -110,9 +112,14 @@ class MainActivity : AppCompatActivity() {
             ContextCompat.getMainExecutor(this),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                    val msg = "Photo capture succeeded : ${outputFileResults.savedUri}"
-                    Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
-                    Log.d(TAG, msg)
+                    outputFileResults.savedUri?.let {
+                        lifecycleScope.launch {
+                            val msg = "Photo capture succeeded : $it"
+                            addWaterMark(this@MainActivity, it, getString(R.string.app_name))
+                            Toast.makeText(baseContext, msg, Toast.LENGTH_SHORT).show()
+                            Log.d(TAG, msg)
+                        }
+                    }
                 }
 
                 override fun onError(e: ImageCaptureException) {
@@ -249,8 +256,10 @@ class MainActivity : AppCompatActivity() {
                 cameraProvider.bindToLifecycle(
                     this,
                     cameraSelector,
-                    preview,/*imageCapture,*/ /*imageAnalyzer,*/
-                    videoCapture
+                    preview,
+                    imageCapture,
+                    /*imageAnalyzer,*/
+                    /*videoCapture*/
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "Use case binding failed", e)
